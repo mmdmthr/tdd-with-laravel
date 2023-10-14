@@ -42,4 +42,24 @@ class SitesControllerTest extends TestCase
         $response->assertSeeText('Google');
         $this->assertEquals(route('sites.show', $site), url()->current());
     }
+
+    /** @test */
+    public function it_only_allows_authenticated_user_to_create_sites()
+    {
+        // make a post req to a route to create a site 
+        $response = $this
+            ->followingRedirects()
+            ->post(route('sites.store'),
+                [
+                    'name' => 'Google',
+                    'url' => 'https://google.com', 
+                ]);
+
+        // make sure no sites exists in the database
+        $this->assertEquals(0, Site::count());
+
+        // see site's name on the page
+        $response->assertSeeText('Log in');
+        $this->assertEquals(route('login'), url()->current());
+    }
 }
