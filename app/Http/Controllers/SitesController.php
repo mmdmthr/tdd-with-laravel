@@ -37,15 +37,7 @@ class SitesController extends Controller
      */
     public function store(StoreSiteRequest $request)
     {
-        $request->validate([
-            'name' => ['required', 'string'],
-            'url' => ['required', 'string', new ValidProtocol],
-        ]);
-
-        $site = auth()->user()->sites()->create([
-            'name' => request('name'),
-            'url' => request('url'),
-        ]);
+        $site = auth()->user()->sites()->create($request->validated());
 
         return redirect()->route('sites.show', $site);
     }
