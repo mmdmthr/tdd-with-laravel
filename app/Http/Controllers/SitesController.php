@@ -36,6 +36,11 @@ class SitesController extends Controller
      */
     public function store(StoreSiteRequest $request)
     {
+        $request->validate([
+            'name' => ['required', 'string'],
+            'url' => ['required', 'string'],
+        ]);
+
         $site = auth()->user()->sites()->create([
             'name' => request('name'),
             'url' => request('url'),

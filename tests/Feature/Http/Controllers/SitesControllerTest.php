@@ -62,4 +62,25 @@ class SitesControllerTest extends TestCase
         $response->assertSeeText('Log in');
         $this->assertEquals(route('login'), url()->current());
     }
+
+    /** @test */
+    public function it_requires_all_fields_to_be_present()
+    {
+        // create a user
+        $user = User::factory()->create(); 
+
+        // make a post req to a route to create a site 
+        $response = $this
+            ->actingAs($user)
+            ->post(route('sites.store'),
+                [
+                    'name' => '',
+                    'url' => '', 
+                ]);
+
+        // make sure no sites exists within the database
+        $this->assertEquals(0, Site::count());
+
+        $response->assertSessionHasErrors(['name', 'url']);
+    }
 }
