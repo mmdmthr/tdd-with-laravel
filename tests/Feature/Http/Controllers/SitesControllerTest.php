@@ -83,4 +83,25 @@ class SitesControllerTest extends TestCase
 
         $response->assertSessionHasErrors(['name', 'url']);
     }
+
+    /** @test */
+    public function it_requires_the_url_to_have_valid_protocol()
+    {
+        // create a user
+        $user = User::factory()->create(); 
+
+        // make a post req to a route to create a site 
+        $response = $this
+            ->actingAs($user)
+            ->post(route('sites.store'),
+                [
+                    'name' => 'Google',
+                    'url' => 'google.com', 
+                ]);
+
+        // make sure no sites exists within the database
+        $this->assertEquals(0, Site::count());
+
+        $response->assertSessionHasErrors(['url']);
+    }
 }

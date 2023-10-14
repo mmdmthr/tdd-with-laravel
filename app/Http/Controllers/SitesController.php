@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreSiteRequest;
 use App\Http\Requests\UpdateSiteRequest;
 use App\Models\Site;
+use App\Rules\ValidProtocol;
 
 class SitesController extends Controller
 {
@@ -38,7 +39,7 @@ class SitesController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string'],
-            'url' => ['required', 'string'],
+            'url' => ['required', 'string', new ValidProtocol],
         ]);
 
         $site = auth()->user()->sites()->create([
