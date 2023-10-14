@@ -6,7 +6,7 @@ use App\Http\Requests\StoreSiteRequest;
 use App\Http\Requests\UpdateSiteRequest;
 use App\Models\Site;
 
-class SiteController extends Controller
+class SitesController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -36,7 +36,12 @@ class SiteController extends Controller
      */
     public function store(StoreSiteRequest $request)
     {
-        //
+        $site = auth()->user()->sites()->create([
+            'name' => request('name'),
+            'url' => request('url'),
+        ]);
+
+        return redirect()->route('sites.show', $site);
     }
 
     /**
@@ -47,7 +52,7 @@ class SiteController extends Controller
      */
     public function show(Site $site)
     {
-        //
+        return view('sites.show', compact('site'));
     }
 
     /**

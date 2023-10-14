@@ -17,7 +17,7 @@ class CreateSitesTable extends Migration
             $table->id();
             $table->string('name');
             $table->string('url');
-            $table->boolean('is_online');
+            $table->boolean('is_online')->nullable();
             $table->unsignedInteger('user_id')->index();
             $table->timestamps();
         });

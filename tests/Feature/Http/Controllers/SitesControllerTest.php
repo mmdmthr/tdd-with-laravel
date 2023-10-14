@@ -21,11 +21,14 @@ class SitesControllerTest extends TestCase
         $user = User::factory()->create(); 
 
         // make a post req to a route to create a site 
-        $response = $this->actingAs($user)->post(route('sites.store'),
-            [
-                'name' => 'Google',
-                'url' => 'https://google.com', 
-            ]);
+        $response = $this
+            ->followingRedirects()
+            ->actingAs($user)
+            ->post(route('sites.store'),
+                [
+                    'name' => 'Google',
+                    'url' => 'https://google.com', 
+                ]);
 
         // make sure the sites exists within the database
         $site = Site::first();
@@ -37,5 +40,6 @@ class SitesControllerTest extends TestCase
 
         // see site's name on the page
         $response->assertSeeText('Google');
+        $this->assertEquals(route('sites.show', $site), url()->current());
     }
 }

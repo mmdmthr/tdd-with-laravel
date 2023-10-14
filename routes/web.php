@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SitesController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -12,6 +13,10 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+Route::middleware(['auth'])->group(function () {
+    Route::resource('sites', SitesController::class);
+});
 
 Route::get('/', function () {
     return view('welcome');
