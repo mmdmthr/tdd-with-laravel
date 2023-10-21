@@ -118,4 +118,30 @@ class SitesControllerTest extends TestCase
         $response->assertSessionHasErrors(['url']);
         Notification::assertNothingSent();
     }
+
+    /** @test */
+    public function it_redirects_a_user_to_a_previous_site_if_they_try_to_add_a_duplicate()
+    {
+        Notification::fake();
+        // create a user
+        $user = User::factory()->create(); 
+
+        // create a site
+        $site = $user->sites()->save(Site::factory()->make());
+
+        // make a post req to a route to create a site 
+        $response = $this
+            ->actingAs($user)
+            ->post(route('sites.store'),
+                [
+                    'name' => 'Google 2',
+                    'url' => $site->url, 
+                ]);
+
+        $response->assertRedirect(route('sites.show', $site));
+        $response->assertSessionHasErrors(['url' => 'The site you tried to add already exists, we redirected you to it\'s page']);
+
+        Notification::assertNothingSent();
+        $this->assertEquals(1, Site::count());
+    }
 }
