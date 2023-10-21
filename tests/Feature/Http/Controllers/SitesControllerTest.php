@@ -4,8 +4,10 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\Site;
 use App\Models\User;
+use App\Notifications\SiteAdded;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class SitesControllerTest extends TestCase
@@ -13,9 +15,10 @@ class SitesControllerTest extends TestCase
     use RefreshDatabase;
 
     /** @test */
-    public function it_create_sites() 
+    public function it_create_sites_and_sends_a_notification_to_the_user() 
     {
         $this->withoutExceptionHandling();
+        Notification::fake();
 
         // create a user
         $user = User::factory()->create(); 
@@ -41,11 +44,17 @@ class SitesControllerTest extends TestCase
         // see site's name on the page
         $response->assertSeeText('Google');
         $this->assertEquals(route('sites.show', $site), url()->current());
+
+        // make sure notification was sent
+        Notification::assertSentTo($user, SiteAdded::class, function($notification) use ($site) {
+            return $notification->site->id === $site->id;
+        });
     }
 
     /** @test */
     public function it_only_allows_authenticated_user_to_create_sites()
     {
+        Notification::fake();
         // make a post req to a route to create a site 
         $response = $this
             ->followingRedirects()
@@ -61,11 +70,13 @@ class SitesControllerTest extends TestCase
         // see site's name on the page
         $response->assertSeeText('Log in');
         $this->assertEquals(route('login'), url()->current());
+        Notification::assertNothingSent();
     }
 
     /** @test */
     public function it_requires_all_fields_to_be_present()
     {
+        Notification::fake();
         // create a user
         $user = User::factory()->create(); 
 
@@ -82,11 +93,13 @@ class SitesControllerTest extends TestCase
         $this->assertEquals(0, Site::count());
 
         $response->assertSessionHasErrors(['name', 'url']);
+        Notification::assertNothingSent();
     }
 
     /** @test */
     public function it_requires_the_url_to_have_valid_protocol()
     {
+        Notification::fake();
         // create a user
         $user = User::factory()->create(); 
 
@@ -103,5 +116,6 @@ class SitesControllerTest extends TestCase
         $this->assertEquals(0, Site::count());
 
         $response->assertSessionHasErrors(['url']);
+        Notification::assertNothingSent();
     }
 }
