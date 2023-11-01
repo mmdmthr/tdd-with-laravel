@@ -11,6 +11,11 @@ class Check extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'response_status' => 'integer',
+        'elapsed_time' => 'integer',
+    ];
+
     public function successful()
     {
         return $this->response_status >= 200 && $this->response_status < 300;
