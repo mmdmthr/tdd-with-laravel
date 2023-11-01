@@ -11,7 +11,15 @@ class Site extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'is_online' => 'boolean',
+    ];
+
     function user() {
         return $this->belongsTo(User::class);
+    }
+
+    function checks() {
+        return $this->hasMany(Check::class);
     }
 }

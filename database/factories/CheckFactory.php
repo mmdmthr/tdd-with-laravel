@@ -16,7 +16,7 @@ class CheckFactory extends Factory
         return [
             'response_status' => rand(200, 204),
             'response_content' => $this->faker->randomHtml(),
-            'elapsed_time' => random_int(1, 100),
+            'elapsed_time' => rand(1, 100),
         ];
     }
 }

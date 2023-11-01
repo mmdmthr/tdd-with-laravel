@@ -10,4 +10,9 @@ class Check extends Model
     use HasFactory;
 
     protected $guarded = [];
+
+    public function successful()
+    {
+        return $this->response_status >= 200 && $this->response_status < 300;
+    }
 }
