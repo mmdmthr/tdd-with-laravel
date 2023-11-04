@@ -38,6 +38,5 @@ class CheckWebsiteTest extends TestCase
         $this->assertEquals('<h1>Success</h1>', $check->response_content);
         $this->assertTrue($check->elapsed_time >= 200);
         $this->assertTrue($site->is_online);
-        dd($check->elapsed_time);
     }
 }
