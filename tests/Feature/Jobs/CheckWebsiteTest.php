@@ -30,5 +30,6 @@ class CheckWebsiteTest extends TestCase
         $this->assertNotNull($check->response_content);
         $this->assertTrue($check->elapsed_time > 1);
         $this->assertTrue($site->is_online);
+        dd($check->elapsed_time);
     }
 }

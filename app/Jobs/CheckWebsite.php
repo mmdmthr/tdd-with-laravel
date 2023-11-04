@@ -16,6 +16,9 @@ class CheckWebsite implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $site;
+
+    public $elapsedTime;
+
     /**
      * Create a new job instance.
      *
@@ -33,16 +36,27 @@ class CheckWebsite implements ShouldQueue
      */
     public function handle()
     {
-        $response = Http::get($this->site->url);
+        $response = $this->measureTime(fn () => Http::get($this->site->url));
 
         $check = $this->site->checks()->create([
             'response_status' => $response->status(),
             'response_content' => $response->body(),
-            'elapsed_time' => 2,
+            'elapsed_time' => $this->elapsedTime,
         ]);
 
         $this->site->update([
             'is_online' => $check->successful(),
         ]);
+    }
+
+    protected function measureTime($closure)
+    {
+        $startTime = microtime(true);
+
+        return tap($closure(), function () use ($startTime) {
+            $endTime = microtime(true);
+            $elapsedTime = ($endTime - $startTime) * 1000;
+            $this->elapsedTime = (int) $elapsedTime;
+        });
     }
 }
