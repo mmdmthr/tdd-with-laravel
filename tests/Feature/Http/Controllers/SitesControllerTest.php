@@ -144,4 +144,32 @@ class SitesControllerTest extends TestCase
         Notification::assertNothingSent();
         $this->assertEquals(1, Site::count());
     }
+
+    /** @test */
+    public function it_allows_user_to_see_their_sites()
+    {
+        $user = User::factory()->create();
+
+        $site = $user->sites()->save(Site::factory()->make());
+
+        $response = $this->actingAs($user)->get(route('sites.index'));
+        $response->assertStatus(200);
+        $response->assertSeeText($site->url);
+        $response->assertSeeText($site->name);
+        $response->assertSeeText($site->is_online ? 'Online' : 'Offline');
+    }
+
+    /** @test */
+    public function it_allows_user_to_see_their_site()
+    {
+        $user = User::factory()->create();
+
+        $site = $user->sites()->save(Site::factory()->make());
+
+        $response = $this->actingAs($user)->get(route('sites.show', $site));
+        $response->assertStatus(200);
+        $response->assertSeeText($site->url);
+        $response->assertSeeText($site->name);
+        $response->assertSeeText($site->is_online ? 'Your site is online' : 'Your site is offline');
+    }
 }

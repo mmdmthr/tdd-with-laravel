@@ -17,7 +17,9 @@ class SitesController extends Controller
      */
     public function index()
     {
-        //
+        return view('sites.index', [
+            'sites' => auth()->user()->sites,
+        ]);
     }
 
     /**
@@ -60,7 +62,9 @@ class SitesController extends Controller
      */
     public function show(Site $site)
     {
-        return view('sites.show', compact('site'));
+        $checks = $site->checks()->latest()->limit(10)->get();
+
+        return view('sites.show', compact('site', 'checks'));
     }
 
     /**
