@@ -13,6 +13,7 @@ class Site extends Model
 
     protected $casts = [
         'is_online' => 'boolean',
+        'is_resolving' => 'boolean',
     ];
 
     function user() {
