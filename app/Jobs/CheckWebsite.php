@@ -37,9 +37,7 @@ class CheckWebsite implements ShouldQueue
      */
     public function handle()
     {
-        try {
-            $response = $this->measureTime(fn () => Http::get($this->site->url));
-        } catch (ConnectionException $e) {
+        if (!$this->site->isResolving()) {
             $this->site->update([
                 'is_resolving' => false,
                 'is_online' => false,
@@ -47,6 +45,8 @@ class CheckWebsite implements ShouldQueue
 
             return;
         }
+
+        $response = $this->measureTime(fn () => Http::get($this->site->url));
 
         $check = $this->site->checks()->create([
             'response_status' => $response->status(),

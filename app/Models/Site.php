@@ -16,11 +16,20 @@ class Site extends Model
         'is_resolving' => 'boolean',
     ];
 
-    function user() {
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    function checks() {
+    public function checks()
+    {
         return $this->hasMany(Check::class);
+    }
+
+    public function isResolving()
+    {
+         $host = parse_url($this->url)['host'];
+
+         return gethostbyname($host) !== $host;
     }
 }
