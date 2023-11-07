@@ -40,7 +40,7 @@ class CheckWebsiteTest extends TestCase
         $this->assertTrue($site->is_online);
 
         Http::assertSent(function ($request) {
-            return $request->url === 'https://google.com';
+            return $request->url() === 'https://google.com';
         });
     }
 
@@ -74,7 +74,7 @@ class CheckWebsiteTest extends TestCase
         $this->assertFalse($site->is_online);
 
         Http::assertSent(function ($request) {
-            return $request->url === 'https://google.com';
+            return $request->url() === 'https://google.com';
         });
     }
 
