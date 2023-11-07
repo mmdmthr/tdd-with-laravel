@@ -11,6 +11,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class CheckWebsite implements ShouldQueue
 {
@@ -50,7 +51,7 @@ class CheckWebsite implements ShouldQueue
 
         $check = $this->site->checks()->create([
             'response_status' => $response->status(),
-            'response_content' => $response->body(),
+            'response_content' => Str::limit($response->body(), 500, ''),
             'elapsed_time' => $this->elapsedTime,
         ]);
 

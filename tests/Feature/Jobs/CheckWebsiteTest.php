@@ -26,7 +26,7 @@ class CheckWebsiteTest extends TestCase
 
         Http::fake(function($request) {
             usleep(200 * 1000);
-            return Http::response('<h1>Success</h1>', 200);
+            return Http::response($this->bigResponse(), 200);
         });
 
         $this->assertEquals(0, $site->checks()->count());
@@ -37,7 +37,7 @@ class CheckWebsiteTest extends TestCase
         $site->refresh();
         $check = $site->checks()->first();
         $this->assertEquals(200, $check->response_status);
-        $this->assertEquals('<h1>Success</h1>', $check->response_content);
+        $this->assertEquals(Str::limit($this->bigResponse(), 500, ''), $check->response_content);
         $this->assertTrue($check->elapsed_time >= 200);
         $this->assertTrue($site->is_online);
 
@@ -135,7 +135,12 @@ class CheckWebsiteTest extends TestCase
         });
     }
 
-    function failureCodes(): array
+    protected function bigResponse()
+    {
+        return file_get_contents(base_path('tests/Fixture/laravel_com_response.txt'));
+    }
+
+    public function failureCodes(): array
     {
         return $this->failureHttpCodes()
                 ->map(fn ($code) => [$code])
