@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Http\Controllers;
 
+use App\Jobs\CheckWebsite;
 use App\Models\Site;
 use App\Models\User;
 use App\Notifications\SiteAdded;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -19,6 +21,7 @@ class SitesControllerTest extends TestCase
     {
         $this->withoutExceptionHandling();
         Notification::fake();
+        Bus::fake();
 
         // create a user
         $user = User::factory()->create(); 
@@ -48,6 +51,11 @@ class SitesControllerTest extends TestCase
         // make sure notification was sent
         Notification::assertSentTo($user, SiteAdded::class, function($notification) use ($site) {
             return $notification->site->id === $site->id;
+        });
+
+        // make sure the CheckWebsite job was dispatched
+        Bus::assertDispatched(CheckWebsite::class, function($job) use ($site) {
+            return $job->site->id === $site->id;
         });
     }
 

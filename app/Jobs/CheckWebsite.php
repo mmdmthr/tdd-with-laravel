@@ -38,7 +38,7 @@ class CheckWebsite implements ShouldQueue
      */
     public function handle()
     {
-        if (!$this->site->isResolving()) {
+        if (!$this->site->isCurrentlyResolving()) {
             $this->site->update([
                 'is_resolving' => false,
                 'is_online' => false,

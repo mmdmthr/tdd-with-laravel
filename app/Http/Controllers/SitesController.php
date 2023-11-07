@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSiteRequest;
 use App\Http\Requests\UpdateSiteRequest;
+use App\Jobs\CheckWebsite;
 use App\Models\Site;
 use App\Notifications\SiteAdded;
 use App\Rules\ValidProtocol;
@@ -50,6 +51,8 @@ class SitesController extends Controller
         $site = auth()->user()->sites()->create($request->validated());
 
         $site->user->notify(new SiteAdded($site));
+
+        CheckWebsite::dispatch($site);
 
         return redirect()->route('sites.show', $site);
     }
