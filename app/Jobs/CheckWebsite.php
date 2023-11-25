@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Site;
+use App\Notifications\SiteIsDown;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -54,6 +55,10 @@ class CheckWebsite implements ShouldQueue
             'response_content' => Str::limit($response->body(), 500, ''),
             'elapsed_time' => $this->elapsedTime,
         ]);
+
+        if ($check->failed() && $this->site->is_online) {
+            $this->site->user->notify(new SiteIsDown($this->site, $check));
+        }
 
         $this->site->update([
             'is_online' => $check->successful(),

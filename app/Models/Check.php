@@ -20,4 +20,8 @@ class Check extends Model
     {
         return $this->response_status >= 200 && $this->response_status < 300;
     }
+
+    function failed(): bool {
+        return !$this->successful();
+    }
 }
