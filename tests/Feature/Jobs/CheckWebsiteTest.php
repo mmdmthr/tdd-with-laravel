@@ -102,7 +102,8 @@ class CheckWebsiteTest extends TestCase
         $user = User::factory()->create();
 
         $site = $user->sites()->save(Site::factory()->make([
-                'url' => 'https://google.com',
+            'url' => 'https://google.com',
+            'is_online' => false,
         ]));
 
         $firstCheck = $site->checks()->save(Check::factory()->make([
@@ -112,7 +113,7 @@ class CheckWebsiteTest extends TestCase
         ]));
 
         Http::fake(function($request) {
-            usleep(200 * 1000);
+            usleep(1000);
             return Http::response('<h1>Failure</h1>', 500);
         });
 
