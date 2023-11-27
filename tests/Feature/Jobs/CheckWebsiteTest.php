@@ -7,6 +7,7 @@ use App\Models\Check;
 use App\Models\Site;
 use App\Models\User;
 use App\Notifications\SiteIsDown;
+use App\Notifications\SiteIsUp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Http;
@@ -21,10 +22,13 @@ class CheckWebsiteTest extends TestCase
     /** @test */
     public function it_properly_checks_a_website()
     {
+        Notification::fake();
+
         $user = User::factory()->create();
 
         $site = $user->sites()->save(Site::factory()->make([
                 'url' => 'https://google.com',
+                'is_online' => true,
         ]));
 
         Http::fake(function($request) {
@@ -46,6 +50,48 @@ class CheckWebsiteTest extends TestCase
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://google.com';
+        });
+
+        Notification::assertNothingSent();
+    }
+
+    /** @test */
+    public function it_sends_a_notification_once_a_site_comes_back_online()
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $site = $user->sites()->save(Site::factory()->make([
+                'url' => 'https://google.com',
+                'is_online' => false,
+        ]));
+
+        Http::fake(function($request) {
+            usleep(200 * 1000);
+            return Http::response($this->bigResponse(), 200);
+        });
+
+        $this->assertEquals(0, $site->checks()->count());
+
+        $job = new CheckWebsite($site);
+        $job->handle();
+
+        $site->refresh();
+        $check = $site->checks()->first();
+        $this->assertEquals(200, $check->response_status);
+        $this->assertEquals(Str::limit($this->bigResponse(), 500, ''), $check->response_content);
+        $this->assertTrue($check->elapsed_time >= 200);
+        $this->assertTrue($site->is_online);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://google.com';
+        });
+
+        Notification::assertSentTo($user, SiteIsUp::class, function($notification) use ($site, $check) {
+            return 
+                $notification->site->id === $site->id
+                && $notification->check->id === $check->id;
         });
     }
 

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Site;
 use App\Notifications\SiteIsDown;
+use App\Notifications\SiteIsUp;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -58,6 +59,8 @@ class CheckWebsite implements ShouldQueue
 
         if ($check->failed() && $this->site->is_online) {
             $this->site->user->notify(new SiteIsDown($this->site, $check));
+        } elseif($check->successful() && !$this->site->is_online) {
+            $this->site->user->notify(new SiteIsUp($this->site, $check));
         }
 
         $this->site->update([
