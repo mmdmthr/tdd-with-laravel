@@ -9,7 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class SiteIsDown extends Notification
+class SiteStatusChanged extends Notification
 {
     use Queueable;
 
@@ -47,10 +47,18 @@ class SiteIsDown extends Notification
      */
     public function toMail($notifiable)
     {
+        $subject = $this->check->successful()
+            ? "Your site {$this->site->url} is online again"
+            : "Your site {$this->site->url} is offline";
+
+        $message = $this->check->successful()
+            ? "We are just informing that just now, {$this->check->created_at}, the site {$this->site->url} is now online."
+            : "We are just informing that just now, {$this->check->created_at}, the site {$this->site->url} went online.";
+
         return (new MailMessage)
-                    ->subject("Your site {$this->site->url} is online again")
+                    ->subject($subject)
                     ->line("Hello {$notifiable->name},")
-                    ->line("We are just informing that just now, {$this->check->created_at}, the site {$this->site->url} is now online.")
+                    ->line($message)
                     ->action('See Site', route('sites.show', $this->site));
     }
 

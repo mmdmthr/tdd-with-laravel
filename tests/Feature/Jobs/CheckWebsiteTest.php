@@ -6,8 +6,7 @@ use App\Jobs\CheckWebsite;
 use App\Models\Check;
 use App\Models\Site;
 use App\Models\User;
-use App\Notifications\SiteIsDown;
-use App\Notifications\SiteIsUp;
+use App\Notifications\SiteStatusChanged;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Http;
@@ -88,7 +87,7 @@ class CheckWebsiteTest extends TestCase
             return $request->url() === 'https://google.com';
         });
 
-        Notification::assertSentTo($user, SiteIsUp::class, function($notification) use ($site, $check) {
+        Notification::assertSentTo($user, SiteStatusChanged::class, function($notification) use ($site, $check) {
             return 
                 $notification->site->id === $site->id
                 && $notification->check->id === $check->id;
@@ -131,7 +130,7 @@ class CheckWebsiteTest extends TestCase
             return $request->url() === 'https://google.com';
         });
 
-        Notification::assertSentTo($user, SiteIsDown::class, function ($notification) use ($site, $check) {
+        Notification::assertSentTo($user, SiteStatusChanged::class, function ($notification) use ($site, $check) {
             return 
                 $notification->site->id === $site->id
                 && $notification->check->id === $check->id;
