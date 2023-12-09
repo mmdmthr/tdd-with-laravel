@@ -48,9 +48,10 @@ class SiteIsDown extends Notification
     public function toMail($notifiable)
     {
         return (new MailMessage)
-                    ->line('The introduction to the notification.')
-                    ->action('Notification Action', url('/'))
-                    ->line('Thank you for using our application!');
+                    ->subject("Your site {$this->site->url} is online again")
+                    ->line("Hello {$notifiable->name},")
+                    ->line("We are just informing that just now, {$this->check->created_at}, the site {$this->site->url} is now online.")
+                    ->action('See Site', route('sites.show', $this->site));
     }
 
     /**
