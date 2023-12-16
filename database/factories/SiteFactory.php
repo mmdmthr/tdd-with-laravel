@@ -17,6 +17,7 @@ class SiteFactory extends Factory
             'name' => $this->faker->name,
             'url' => 'https://google.com',
             'is_online' => $this->faker->boolean,
+            'webhook_url' => null,
         ];
     }
 }

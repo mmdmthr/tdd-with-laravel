@@ -14,6 +14,9 @@
                     <li>{{ $site->url }}</li>
                     <li>{{ $site->name }}</li>
                     <li>{{ $site->is_online ? 'Your site is online' : 'Your site is offline' }}</li>
+                    @if ($site->webhook_url)
+                        <li>Webhook URL: {{ $site->webhook_url }}</li>
+                    @endif
                 </ul>
             </div>
         </div>

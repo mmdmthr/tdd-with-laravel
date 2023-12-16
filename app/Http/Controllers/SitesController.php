@@ -90,7 +90,8 @@ class SitesController extends Controller
      */
     public function update(UpdateSiteRequest $request, Site $site)
     {
-        //
+        $site->update($request->validated());
+        return redirect()->route('sites.show', $site);
     }
 
     /**

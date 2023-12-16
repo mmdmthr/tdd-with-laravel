@@ -7,7 +7,6 @@ use App\Models\Site;
 use App\Models\User;
 use App\Notifications\SiteAdded;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -179,5 +178,40 @@ class SitesControllerTest extends TestCase
         $response->assertSeeText($site->url);
         $response->assertSeeText($site->name);
         $response->assertSeeText($site->is_online ? 'Your site is online' : 'Your site is offline');
+    }
+
+    /** @test */
+    public function it_allows_a_user_to_edit_the_webhook_url() 
+    {
+        $this->withoutExceptionHandling();
+
+        // create a user
+        $user = User::factory()->create();
+        $site = $user->sites()->save(Site::factory()->make([
+            'is_online' => false,
+            'webhook_url' => null,
+        ]));
+        $webhookUrl = 'https://tddwithlaravel.com/webhook';
+
+        // make a PUT req to a route to create a site 
+        $response = $this
+            ->followingRedirects()
+            ->actingAs($user)
+            ->put(route('sites.update', $site),
+                [
+                    'name' => 'Google',
+                    'webhook_url' => $webhookUrl,
+                ]);
+
+        $site->refresh();
+        $this->assertEquals('Google', $site->name);
+        $this->assertEquals($webhookUrl, $site->webhook_url);
+        $this->assertFalse($site->is_online);
+        $this->assertEquals($user->id, $site->user->id);
+
+        // see site's name on the page
+        $response->assertSeeText('Google');
+        $response->assertSeeText($webhookUrl);
+        $this->assertEquals(route('sites.show', $site), url()->current());
     }
 }
