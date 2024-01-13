@@ -28,6 +28,7 @@ class CheckWebsiteTest extends TestCase
         $site = $user->sites()->save(Site::factory()->make([
                 'url' => 'https://google.com',
                 'is_online' => true,
+                'webhook_url' => 'https://tddwithlaravel.com/webhook',
         ]));
 
         Http::fake(function($request) {
@@ -49,6 +50,11 @@ class CheckWebsiteTest extends TestCase
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://google.com';
+        });
+
+        // no webhook as sent back
+        Http::assertNotSent(function ($request) use ($site) {
+            return $request->url() === $site->webhook_url;
         });
 
         Notification::assertNothingSent();
@@ -137,9 +143,7 @@ class CheckWebsiteTest extends TestCase
         });
     }
 
-    /** 
-     * @test
-     */
+    /** @test */
     public function it_does_not_send_a_failure_notification_multiple_times()
     {
         Notification::fake();
@@ -234,6 +238,57 @@ class CheckWebsiteTest extends TestCase
         Http::assertSent(function ($request) {
             return $request->url() === 'https://google.com';
         });
+    }
+
+    /** @test */
+    public function it_sends_a_webhook_callback_on_failures()
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+
+        $site = $user->sites()->save(Site::factory()->make([
+            'url' => 'https://google.com',
+            'is_online' => false,
+            'webhook_url' => 'https://tddwithlaravel.com/webhook',
+        ]));
+
+        $firstCheck = $site->checks()->save(Check::factory()->make([
+            'response_status' => 500,
+            'response_content' => 'Foo',
+            'elapsed_time' => 20,
+        ]));
+
+        Http::fake(function($request) {
+            usleep(1000);
+            return Http::response('<h1>Failure</h1>', 500);
+        });
+
+        $this->assertEquals(1, $site->checks()->count());
+
+        $job = new CheckWebsite($site);
+        $job->handle();
+
+        $site->refresh();
+        $check = $site->checks()->latest('id')->first();
+        $this->assertEquals(500, $check->response_status);
+        $this->assertEquals('<h1>Failure</h1>', $check->response_content);
+        $this->assertTrue($check->elapsed_time >= 1);
+        $this->assertFalse($site->is_online);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://google.com';
+        });
+
+        Http::assertSent(function ($request) use ($site, $check) {
+            return $request->url() === $site->webhook_url
+                && $request['site'] === $site->url
+                && $request['content'] === $check->response_content
+                && $request['content'] === 'A check to your site failed.'
+                && $request['content'] === now()->toDateTimeString();
+        });
+
+        Notification::assertNothingSent();
     }
 
     protected function bigResponse()
