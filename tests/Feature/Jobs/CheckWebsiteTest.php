@@ -3,12 +3,14 @@
 namespace Tests\Feature\Jobs;
 
 use App\Jobs\CheckWebsite;
+use App\Jobs\SendWebhook;
 use App\Models\Check;
 use App\Models\Site;
 use App\Models\User;
 use App\Notifications\SiteStatusChanged;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -21,6 +23,8 @@ class CheckWebsiteTest extends TestCase
     /** @test */
     public function it_properly_checks_a_website()
     {
+        Bus::fake();
+
         Notification::fake();
 
         $user = User::factory()->create();
@@ -58,11 +62,16 @@ class CheckWebsiteTest extends TestCase
         });
 
         Notification::assertNothingSent();
+
+        // assert no webhook job was dispatched
+        Bus::assertNotDispatched(SendWebhook::class);
     }
 
     /** @test */
     public function it_sends_a_notification_once_a_site_comes_back_online()
     {
+        Bus::fake();
+
         Notification::fake();
 
         $user = User::factory()->create();
@@ -98,6 +107,9 @@ class CheckWebsiteTest extends TestCase
                 $notification->site->id === $site->id
                 && $notification->check->id === $check->id;
         });
+
+        // assert no webhook job was dispatched
+        Bus::assertNotDispatched(SendWebhook::class);
     }
 
     /** 
@@ -106,6 +118,8 @@ class CheckWebsiteTest extends TestCase
      */
     public function it_handles_failures($failureCode)
     {
+        Bus::fake();
+
         Notification::fake();
 
         $user = User::factory()->create();
@@ -141,11 +155,16 @@ class CheckWebsiteTest extends TestCase
                 $notification->site->id === $site->id
                 && $notification->check->id === $check->id;
         });
+
+        // assert no webhook job was dispatched
+        Bus::assertNotDispatched(SendWebhook::class);
     }
 
     /** @test */
     public function it_does_not_send_a_failure_notification_multiple_times()
     {
+        Bus::fake();
+
         Notification::fake();
 
         $user = User::factory()->create();
@@ -183,11 +202,16 @@ class CheckWebsiteTest extends TestCase
         });
 
         Notification::assertNothingSent();
+
+        // assert no webhook job was dispatched
+        Bus::assertNotDispatched(SendWebhook::class);
     }
 
     /** @test */
     public function it_handles_hosts_that_do_not_resolve()
     {
+        Bus::fake();
+
         $user = User::factory()->create();
 
         $randomUrl = 'https://' . Str::random(12) . '.com';
@@ -205,11 +229,16 @@ class CheckWebsiteTest extends TestCase
         $this->assertEquals(0, $site->checks()->count());
         $this->assertFalse($site->is_online);
         $this->assertFalse($site->is_resolving);
+
+        // assert no webhook job was dispatched
+        Bus::assertNotDispatched(SendWebhook::class);
     }
 
     /** @test */
     public function it_updates_the_resolving_status_of_a_site_that_was_not_resolving()
     {
+        Bus::fake();
+
         $user = User::factory()->create();
 
         $site = $user->sites()->save(Site::factory()->make([
@@ -235,6 +264,9 @@ class CheckWebsiteTest extends TestCase
         $this->assertTrue($site->is_online);
         $this->assertTrue($site->is_resolving);
 
+        // assert no webhook job was dispatched
+        Bus::assertNotDispatched(SendWebhook::class);
+
         Http::assertSent(function ($request) {
             return $request->url() === 'https://google.com';
         });
@@ -243,6 +275,7 @@ class CheckWebsiteTest extends TestCase
     /** @test */
     public function it_sends_a_webhook_callback_on_failures()
     {
+        Bus::fake();
         Notification::fake();
 
         $user = User::factory()->create();
@@ -280,12 +313,8 @@ class CheckWebsiteTest extends TestCase
             return $request->url() === 'https://google.com';
         });
 
-        Http::assertSent(function ($request) use ($site, $check) {
-            return $request->url() === $site->webhook_url
-                && $request['site'] === $site->url
-                && $request['content'] === $check->response_content
-                && $request['message'] === 'A check to your site failed.'
-                && $request['happened_at'] === now()->toDateTimeString();
+        Bus::assertDispatched(SendWebhook::class, function ($job) use ($check) {
+            return $job->check->is($check);
         });
 
         Notification::assertNothingSent();
