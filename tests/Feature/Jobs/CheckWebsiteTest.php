@@ -284,9 +284,9 @@ class CheckWebsiteTest extends TestCase
             return $request->url() === $site->webhook_url
                 && $request['site'] === $site->url
                 && $request['content'] === $check->response_content
-                && $request['content'] === 'A check to your site failed.'
-                && $request['content'] === now()->toDateTimeString();
-        });
+                && $request['message'] === 'A check to your site failed.'
+                && $request['happened_at'] === now()->toDateTimeString();
+            });
 
         Notification::assertNothingSent();
     }
