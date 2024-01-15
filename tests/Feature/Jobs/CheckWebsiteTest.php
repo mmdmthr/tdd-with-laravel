@@ -286,7 +286,7 @@ class CheckWebsiteTest extends TestCase
                 && $request['content'] === $check->response_content
                 && $request['message'] === 'A check to your site failed.'
                 && $request['happened_at'] === now()->toDateTimeString();
-            });
+        });
 
         Notification::assertNothingSent();
     }

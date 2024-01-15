@@ -21,7 +21,18 @@ class Check extends Model
         return $this->response_status >= 200 && $this->response_status < 300;
     }
 
-    function failed(): bool {
+    function failed(): bool
+    {
         return !$this->successful();
+    }
+
+    public function site()
+    {
+        return $this->belongsTo(Site::class);
+    }
+
+    public function webhookCalls()
+    {
+        return $this->hasMany(WebhookCall::class);
     }
 }
