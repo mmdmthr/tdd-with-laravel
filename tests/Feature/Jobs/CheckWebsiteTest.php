@@ -20,20 +20,16 @@ class CheckWebsiteTest extends TestCase
 {
     use RefreshDatabase;
     
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Notification::fake();
+        Bus::fake();
+    }
     /** @test */
     public function it_properly_checks_a_website()
     {
-        Bus::fake();
-
-        Notification::fake();
-
-        $user = User::factory()->create();
-
-        $site = $user->sites()->save(Site::factory()->make([
-                'url' => 'https://google.com',
-                'is_online' => true,
-                'webhook_url' => 'https://tddwithlaravel.com/webhook',
-        ]));
+        [$user, $site] = $this->createUserAndSite();
 
         Http::fake(function($request) {
             usleep(200 * 1000);
@@ -42,8 +38,7 @@ class CheckWebsiteTest extends TestCase
 
         $this->assertEquals(0, $site->checks()->count());
 
-        $job = new CheckWebsite($site);
-        $job->handle();
+        (new CheckWebsite($site))->handle();
 
         $site->refresh();
         $check = $site->checks()->first();
@@ -52,6 +47,7 @@ class CheckWebsiteTest extends TestCase
         $this->assertTrue($check->elapsed_time >= 200);
         $this->assertTrue($site->is_online);
 
+        // assert we sent an http call to google.com
         Http::assertSent(function ($request) {
             return $request->url() === 'https://google.com';
         });
@@ -70,16 +66,7 @@ class CheckWebsiteTest extends TestCase
     /** @test */
     public function it_sends_a_notification_once_a_site_comes_back_online()
     {
-        Bus::fake();
-
-        Notification::fake();
-
-        $user = User::factory()->create();
-
-        $site = $user->sites()->save(Site::factory()->make([
-                'url' => 'https://google.com',
-                'is_online' => false,
-        ]));
+        [$user, $site] = $this->createUserAndSite('https://google.com', false);
 
         Http::fake(function($request) {
             usleep(200 * 1000);
@@ -88,8 +75,7 @@ class CheckWebsiteTest extends TestCase
 
         $this->assertEquals(0, $site->checks()->count());
 
-        $job = new CheckWebsite($site);
-        $job->handle();
+        (new CheckWebsite($site))->handle();
 
         $site->refresh();
         $check = $site->checks()->first();
@@ -118,16 +104,7 @@ class CheckWebsiteTest extends TestCase
      */
     public function it_handles_failures($failureCode)
     {
-        Bus::fake();
-
-        Notification::fake();
-
-        $user = User::factory()->create();
-
-        $site = $user->sites()->save(Site::factory()->make([
-            'url' => 'https://google.com',
-            'is_online' => true,
-        ]));
+        [$user, $site] = $this->createUserAndSite('https://google.com', true, null);
 
         Http::fake(function($request) use ($failureCode) {
             usleep(200 * 1000);
@@ -136,8 +113,7 @@ class CheckWebsiteTest extends TestCase
 
         $this->assertEquals(0, $site->checks()->count());
 
-        $job = new CheckWebsite($site);
-        $job->handle();
+        (new CheckWebsite($site))->handle();
 
         $site->refresh();
         $check = $site->checks()->first();
@@ -163,16 +139,7 @@ class CheckWebsiteTest extends TestCase
     /** @test */
     public function it_does_not_send_a_failure_notification_multiple_times()
     {
-        Bus::fake();
-
-        Notification::fake();
-
-        $user = User::factory()->create();
-
-        $site = $user->sites()->save(Site::factory()->make([
-            'url' => 'https://google.com',
-            'is_online' => false,
-        ]));
+        [$user, $site] = $this->createUserAndSite('https://google.com', false, null);
 
         $firstCheck = $site->checks()->save(Check::factory()->make([
             'response_status' => 500,
@@ -187,8 +154,7 @@ class CheckWebsiteTest extends TestCase
 
         $this->assertEquals(1, $site->checks()->count());
 
-        $job = new CheckWebsite($site);
-        $job->handle();
+        (new CheckWebsite($site))->handle();
 
         $site->refresh();
         $check = $site->checks()->latest('id')->first();
@@ -210,20 +176,12 @@ class CheckWebsiteTest extends TestCase
     /** @test */
     public function it_handles_hosts_that_do_not_resolve()
     {
-        Bus::fake();
-
-        $user = User::factory()->create();
-
         $randomUrl = 'https://' . Str::random(12) . '.com';
-
-        $site = $user->sites()->save(Site::factory()->make([
-                'url' => $randomUrl,
-        ]));
+        [$user, $site] = $this->createUserAndSite($randomUrl, true, null);
     
         $this->assertEquals(0, $site->checks()->count());
 
-        $job = new CheckWebsite($site);
-        $job->handle();
+        (new CheckWebsite($site))->handle();
 
         $site->refresh();
         $this->assertEquals(0, $site->checks()->count());
@@ -237,14 +195,7 @@ class CheckWebsiteTest extends TestCase
     /** @test */
     public function it_updates_the_resolving_status_of_a_site_that_was_not_resolving()
     {
-        Bus::fake();
-
-        $user = User::factory()->create();
-
-        $site = $user->sites()->save(Site::factory()->make([
-                'url' => 'https://google.com',
-                'is_resolving' => false,
-        ]));
+        [$user, $site] = $this->createUserAndSite('https://google.com', false, null);
 
         Http::fake(function($request) {
             usleep(200 * 1000);
@@ -253,8 +204,7 @@ class CheckWebsiteTest extends TestCase
 
         $this->assertEquals(0, $site->checks()->count());
 
-        $job = new CheckWebsite($site);
-        $job->handle();
+        (new CheckWebsite($site))->handle();
 
         $site->refresh();
         $check = $site->checks()->first();
@@ -275,16 +225,7 @@ class CheckWebsiteTest extends TestCase
     /** @test */
     public function it_sends_a_webhook_callback_on_failures()
     {
-        Bus::fake();
-        Notification::fake();
-
-        $user = User::factory()->create();
-
-        $site = $user->sites()->save(Site::factory()->make([
-            'url' => 'https://google.com',
-            'is_online' => false,
-            'webhook_url' => 'https://tddwithlaravel.com/webhook',
-        ]));
+        [$user, $site] = $this->createUserAndSite('https://google.com', false, 'https://tddwithlaravel.com/webhook');
 
         $firstCheck = $site->checks()->save(Check::factory()->make([
             'response_status' => 500,
@@ -299,8 +240,7 @@ class CheckWebsiteTest extends TestCase
 
         $this->assertEquals(1, $site->checks()->count());
 
-        $job = new CheckWebsite($site);
-        $job->handle();
+        (new CheckWebsite($site))->handle();
 
         $site->refresh();
         $check = $site->checks()->latest('id')->first();
@@ -330,5 +270,21 @@ class CheckWebsiteTest extends TestCase
         return $this->failureHttpCodes()
                 ->map(fn ($code) => [$code])
                 ->toArray();
+    }
+
+    protected function createUserAndSite(
+        $url = 'https://google.com',
+        $isOnline = true,
+        $webhookUrl = null
+    ) {
+        $user = User::factory()->create();
+
+        $site = $user->sites()->save(Site::factory()->make([
+            'url' => $url,
+            'is_online' => $isOnline,
+            'webhook_url' => $webhookUrl,
+        ]));
+
+        return [$user, $site];
     }
 }
